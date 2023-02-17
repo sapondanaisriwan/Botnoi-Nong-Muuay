@@ -1,0 +1,54 @@
+var sheeturl = "https://docs.google.com/spreadsheets/d/.../edit?usp=sharing";
+function doGet(request) {
+  // Change Spread Sheet url
+  var custid = request.parameter.custid;
+  var linenotitoken = request.parameter.linenotitoken;
+  //Logger.log(pname)
+  sendLineNotify(custid, (token = linenotitoken));
+  result = { sendnoti: "succeed" };
+  result = JSON.stringify(result);
+  return ContentService.createTextOutput(result).setMimeType(
+    ContentService.MimeType.JSON
+  );
+}
+
+function getcustdata(custid) {
+  var sheetname = "ออเดอร์";
+  var custname = "วินน์";
+  var psheet = gspandas.gsdataframe(sheeturl, sheetname);
+  var pinfo = psheet.getrowdict("รหัสลูกค้า", custid);
+  var pinfol = psheet.getrows("รหัสลูกค้า", custid);
+  Logger.log(pinfol);
+
+  psheet.deleterows("รหัสลูกค้า", custid);
+
+  orderedsheet = "ยอดออเดอร์";
+  var opsheet = gspandas.gsdataframe(sheeturl, orderedsheet);
+
+  Logger.log(pinfo);
+
+  itm = "\ncustomer_name: " + custid.substring(1, 6) + "\n\n";
+  for (i in pinfo) {
+    //Logger.log(pinfo[i].values)
+    opsheet.sheet.appendRow(pinfol[i]);
+    itm = itm + pinfo[i]["ชื่อสินค้า"] + "\n";
+  }
+
+  Logger.log(itm);
+
+  return itm;
+}
+
+function sendLineNotify(custid, token = "Your token") {
+  var message = getcustdata(custid);
+  var token = [token]; //ใส่ access token ที่ใช้งาน
+  var options = {
+    method: "post",
+    payload: "message=" + message,
+    headers: {
+      Authorization: "Bearer " + token,
+    },
+  };
+
+  UrlFetchApp.fetch("https://notify-api.line.me/api/notify", options);
+}
